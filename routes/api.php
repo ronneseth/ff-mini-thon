@@ -23,26 +23,39 @@ use OpenFeature\Providers\GoFeatureFlag\GoFeatureFlagProvider;
 Route::get('/hello', function (Request $request) {
 
 	$customer_id = (int)$request->input('customer_id');
-	$api = OpenFeatureAPI::getInstance();
+    if (empty($customer_id)) {
+        return response()->json(['message' => 'customer_id required'], 400);
+    }
 
-    $provider =null;
-    if (false)    
-    {
-	    $httpClient = new Client();
-        $httpFactory = new HttpFactory();
-        $provider = new FlagdProvider(['httpConfig' => new HttpConfig($httpClient,$httpFactory,$httpFactory,)]);
+    if (empty($request->input('provider'))) {
+        return response()->json(['message' => 'provider required'], 400);
     }
-    else
-    {
-        $provider = new GoFeatureFlagProvider(new Config('http://localhost:1031'));
+    $provider = (string)$request->input('provider');
+
+	$providers = [];
+
+	// Flagd provider
+	$httpClient = new Client();
+    $httpFactory = new HttpFactory();
+    $flagd_provider = new FlagdProvider(['httpConfig' => new HttpConfig($httpClient,$httpFactory,$httpFactory,)]);
+    $providers['flagd'] = $flagd_provider;
+
+    // GoFeatureFlag provider
+    $goff_provider = new GoFeatureFlagProvider(new Config('http://localhost:1031'));
+    $providers['go-feature-flag'] = $goff_provider;
+
+    if (!array_key_exists($provider, $providers)) {
+        return response()->json(['message' => "{$provider} is not a valid provider"], 400);
     }
-    $api->setProvider($provider);
-    $client = $api->getClient();
-    $attributes = new Attributes(['customerId' => $customer_id]);
-    $start = microtime(true);
+
+    // Get an instance of the OpenFeatureAPI
+    // OpenFeatureAPI is a singleton that provides access to feature flag evaluation
+    $api = OpenFeatureAPI::getInstance();
+    $api->setProvider($providers[$provider]);
     $context = new MutableEvaluationContext('targetingKey', $attributes);
-    $end = microtime(true);
+    $start = microtime(true);
     $value = $client->getBooleanValue("use-products-api", false, $context);
+    $end = microtime(true);
     $total_time = $end - $start;
     if($value){
         return response()->json(['message' => 'Hello, World! PRODUCTS API - ' . $total_time]);

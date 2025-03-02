@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types = 1);
+
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -8,7 +10,6 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Psr7\HttpFactory;
 
 use OpenFeature\OpenFeatureAPI;
-use OpenFeature\Interfaces\Flags;
 use OpenFeature\implementation\flags\MutableEvaluationContext;
 use OpenFeature\implementation\flags\Attributes;
 
@@ -22,7 +23,11 @@ use OpenFeature\Providers\GoFeatureFlag\GoFeatureFlagProvider;
 
 Route::get('/hello', function (Request $request) {
 
-	$customer_id = (int)$request->input('customer_id');
+    $customer_id = filter_var($request->input('customer_id'), FILTER_VALIDATE_INT);
+
+    // NOTE: the targetKey type MUST match the type of the target key in the feature flag
+    //  -- e..g "1004", is not equal to 1004,
+    //$customer_id = filter_var($request->input('customer_id'), FILTER_SANITIZE_SPECIAL_CHARS);
     if (empty($customer_id)) {
         return response()->json(['message' => 'customer_id required'], 400);
     }
@@ -30,14 +35,17 @@ Route::get('/hello', function (Request $request) {
     if (empty($request->input('provider'))) {
         return response()->json(['message' => 'provider required'], 400);
     }
-    $provider = (string)$request->input('provider');
+    $provider = filter_var($request->input('provider'), FILTER_SANITIZE_SPECIAL_CHARS);
+    if ($provider === false || empty($provider)) {
+        return response()->json(['message' => 'Invalid provider'], 400);
+    }
 
 	$providers = [];
 
 	// Flagd provider
 	$httpClient = new Client();
     $httpFactory = new HttpFactory();
-    $flagd_provider = new FlagdProvider(['httpConfig' => new HttpConfig($httpClient,$httpFactory,$httpFactory,)]);
+    $flagd_provider = new FlagdProvider(['httpConfig' => new HttpConfig($httpClient, $httpFactory, $httpFactory)]);
     $providers['flagd'] = $flagd_provider;
 
     // GoFeatureFlag provider
@@ -47,19 +55,21 @@ Route::get('/hello', function (Request $request) {
     if (!array_key_exists($provider, $providers)) {
         return response()->json(['message' => "{$provider} is not a valid provider"], 400);
     }
-
     // Get an instance of the OpenFeatureAPI
     // OpenFeatureAPI is a singleton that provides access to feature flag evaluation
     $api = OpenFeatureAPI::getInstance();
     $api->setProvider($providers[$provider]);
+    // Let's evaluate the feature flag
+    $attributes = new Attributes(['customerId' => $customer_id]);
     $context = new MutableEvaluationContext('targetingKey', $attributes);
-    $start = microtime(true);
+    $start = hrtime(true);
+    $client = $api->getClient(); 
     $value = $client->getBooleanValue("use-products-api", false, $context);
-    $end = microtime(true);
-    $total_time = $end - $start;
-    if($value){
-        return response()->json(['message' => 'Hello, World! PRODUCTS API - ' . $total_time]);
+    $end = hrtime(true);
+    $total_time = ($end - $start) / 1e9; // Convert nanoseconds to seconds
+    if ($value) {
+        return response()->json(['message' => 'Using PRODUCTS API - ' . $total_time]);
     }
-    return response()->json(['message' => 'Hello, World! USING v1 - ' . $total_time]);
+    return response()->json(['message' => 'Using catalog v1 - ' . $total_time]);
 });
 

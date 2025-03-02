@@ -32,8 +32,8 @@ docker run \
 
 With flagd running, test the flagd provider. Customers in the range 1004 through 10000 has "products API" feature on - any others have it off:
 
-Off: http://127.0.0.1:8000/api/hello?provider=flagd&customer_id=99
-On: http://127.0.0.1:8000/api/hello?provider=flagd&customer_id=1004
+Off: http://127.0.0.1:8000/api/ff/use_products_api?provider=flagd&customer_id=99  
+On: http://127.0.0.1:8000/api/ff/use_products_api?provider=flagd&customer_id=1004
 
 ## Go-Feature-Flag
 
@@ -52,7 +52,7 @@ docker run \
 ```
 With go-feature-flag provider running you can test it. Customers in the range 1004 through 10000 has "products API" feature on - any others have it off:
 
-Off: http://127.0.0.1:8000/api/hello?provider=go-feature-flag&customer_id=99
-On: http://127.0.0.1:8000/api/hello?provider=go-feature-flag&customer_id=1004
+Off: http://127.0.0.1:8000/api/ff/use_products_api?provider=go-feature-flag&customer_id=99  
+On:  http://127.0.0.1:8000/api/ff/use_products_api?provider=go-feature-flag&customer_id=1004
 
 

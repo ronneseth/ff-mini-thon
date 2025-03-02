@@ -21,7 +21,7 @@ use OpenFeature\Providers\GoFeatureFlag\config\Config;
 use OpenFeature\Providers\GoFeatureFlag\GoFeatureFlagProvider;
 
 
-Route::get('/hello', function (Request $request) {
+Route::get('/ff/{feature_flag}', function (Request $request, string $feature_flag) {
 
     // NOTE: the targetKey type MUST match the type of the target key in the feature flag
     //  -- e..g "1004", is not equal to 1004,
@@ -64,7 +64,7 @@ Route::get('/hello', function (Request $request) {
     $context = new MutableEvaluationContext('targetingKey', $attributes);
     $start = hrtime(true);
     $client = $api->getClient(); 
-    $value = $client->getBooleanValue("use_products_api", false, $context);
+    $value = $client->getBooleanValue($feature_flag, false, $context);
     $end = hrtime(true);
     $total_time = ($end - $start) / 1e9; // Convert nanoseconds to seconds
     if ($value) 

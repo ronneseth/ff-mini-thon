@@ -23,11 +23,11 @@ use OpenFeature\Providers\GoFeatureFlag\GoFeatureFlagProvider;
 
 Route::get('/hello', function (Request $request) {
 
-    $customer_id = filter_var($request->input('customer_id'), FILTER_VALIDATE_INT);
-
     // NOTE: the targetKey type MUST match the type of the target key in the feature flag
     //  -- e..g "1004", is not equal to 1004,
-    //$customer_id = filter_var($request->input('customer_id'), FILTER_SANITIZE_SPECIAL_CHARS);
+    // We have included both in the evaluation files
+    $customer_id = filter_var($request->input('customer_id'), FILTER_VALIDATE_INT);
+    $customer_id = filter_var($request->input('customer_id'), FILTER_SANITIZE_SPECIAL_CHARS);
     if (empty($customer_id)) {
         return response()->json(['message' => 'customer_id required'], 400);
     }
@@ -64,12 +64,13 @@ Route::get('/hello', function (Request $request) {
     $context = new MutableEvaluationContext('targetingKey', $attributes);
     $start = hrtime(true);
     $client = $api->getClient(); 
-    $value = $client->getBooleanValue("use-products-api", false, $context);
+    $value = $client->getBooleanValue("use_products_api", false, $context);
     $end = hrtime(true);
     $total_time = ($end - $start) / 1e9; // Convert nanoseconds to seconds
-    if ($value) {
-        return response()->json(['message' => 'Using PRODUCTS API - ' . $total_time]);
+    if ($value) 
+    {
+        return response()->json(['message' => "Using '{$customer_id}' PRODUCTS API - {$total_time}"]);
     }
-    return response()->json(['message' => 'Using catalog v1 - ' . $total_time]);
+    return response()->json(['message' => "Using '{$customer_id}' catalog v1 - $total_time"]);
 });
 

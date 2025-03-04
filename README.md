@@ -25,7 +25,7 @@ curl "http://127.0.0.1:8000/api/ff/max_listings?provider=flagd&flag_type=integer
 ```
 
 Returns:
-````
+```
 {"message":"integer max_listings 'productHash: 5c3fb11bdb8e1258e50e890dcd228faf' evaluated to 200000 - 0.001181988"}
 ```
 

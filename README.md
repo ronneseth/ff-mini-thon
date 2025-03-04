@@ -5,7 +5,7 @@ This is a test of using OpenFeature.org feature flag providers in Laravel.
 
 # Usage
 
-The API uses the following URI and parameters (all required)
+The API uses the following URI and parameters:
 
 ```
 /api/ff/:feature_flag?provider=<provider>&customer_id=<customer_id>&product_hash=<hash>&flag_type=<type>&

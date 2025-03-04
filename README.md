@@ -3,7 +3,33 @@ Feature Flag Mini-thon
 
 This is a test of using OpenFeature.org feature flag providers in Laravel.
 
-Local Development
+# Usage
+
+The API uses the following URI and parameters (all required)
+
+```
+/api/ff/:feature_flag?provider=<provider>&customer_id=<customer_id>&product_hash=<hash>&flag_type=<type>&
+```
+
+- feature_flag: Try 'use_products_api'. This will take any value but will return 'false' if the FF is not valid
+- provider: Can be either 'go-feature-flag' or 'flagd' (see below how to run providers)
+- flag_type: Can be either boolean (RP lingo: FLAG), string (RP lingo: either ENUM or VALUE), or integer (RP lingo: LIMIT) or float (no RP lingo or example)
+- product_hash: An 32 character hash representing an RP product. Can't put both c
+- customer_id: An integer such as 99 or 1004
+
+You can either specify product_hash or customer_id, but not both.
+
+Example curl command
+```
+curl "http://127.0.0.1:8000/api/ff/max_listings?provider=flagd&flag_type=integer&product_hash=5c3fb11bdb8e1258e50e890dcd228faf"
+```
+
+Returns:
+````
+{"message":"integer max_listings 'productHash: 5c3fb11bdb8e1258e50e890dcd228faf' evaluated to 200000 - 0.001181988"}
+```
+
+## Local Development
 
 ```
 git clone git@github.com:ronneseth/ff-mini-thon.git
@@ -14,7 +40,7 @@ php artisan serve
 
 The service will not work (throws 500 internal error) until we have a corresponding OpenFeature provider running. We support two - flagd and go-open-feature (goff).
 
-## Flagd
+### Flagd
 
 Setup the flagd provider - you can read more on your own [here](https://flagd.dev/quick-start/).
 ```
@@ -30,14 +56,27 @@ docker run \
   --uri file:./etc/flagd/customer.flagd.json
 ```
 
-With flagd running, test the flagd provider. Customers in the range 1004 through 10000 has "products API" feature on - any others have it off:
+With flagd running, test the flagd provider. You can revew customers.flagd.json to craft more examples
 
-Off: http://127.0.0.1:8000/api/ff/use_products_api?provider=flagd&customer_id=99  
-On: http://127.0.0.1:8000/api/ff/use_products_api?provider=flagd&customer_id=1004
+LIMIT example: http://127.0.0.1:8000/api/ff/max_listings?provider=flagd&flag_type=integer&product_hash=5c3fb11bdb8e1258e50e890dcd228faf  
+```
+{"message":"integer max_listings 'productHash: 5c3fb11bdb8e1258e50e890dcd228faf' evaluated to 200000 - 0.001181988"}
+```
+http://127.0.0.1:8000/api/ff/use_products_api?provider=flagd&customer_id=1004&flag_type=boolean
+```
+{"message":"boolean use_products_api 'customerId: 1004' evaluated to false - 0.000420951"}
+```
 
-## Go-Feature-Flag
+Locally, flagd evaluates a feature flag in 3-7 ms. Memory usage:
+```
+root@thor-gen10:~# echo 0 $(awk '/Pss/ {print "+", $2}' /proc/`pidof flagd-build`/smaps) | bc
+66060
+```
 
-Setup & run the go-feature-flag provider - you can read more on your own here.
+
+### Go-Feature-Flag
+
+Setup & run the go-feature-flag provider - you can read more on your own [here](https://gofeatureflag.org/docs/getting-started).
 
 ```
 mkdir go-feature-flag
@@ -50,9 +89,16 @@ docker run \
   -v $(pwd)/goff-proxy.yaml:/goff/goff-proxy.yaml \
   gofeatureflag/go-feature-flag:latest
 ```
-With go-feature-flag provider running you can test it. Customers in the range 1004 through 10000 has "products API" feature on - any others have it off:
+With go-feature-flag provider running you can test it. Check out customer-config.goff.yaml to craf more examples.
 
 Off: http://127.0.0.1:8000/api/ff/use_products_api?provider=go-feature-flag&customer_id=99  
 On:  http://127.0.0.1:8000/api/ff/use_products_api?provider=go-feature-flag&customer_id=1004
+
+Locally, Goff evaluates a feature flag in 10-18 ms. Memory usage:
+```
+root@thor-gen10:~# echo 0 $(awk '/Pss/ {print "+", $2}' /proc/`pidof go-feature-flag`/smaps) | bc
+115096
+
+```
 
 
